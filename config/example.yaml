@@ -1,0 +1,17 @@
+# config
+
+# interval in mins
+interval: 30
+
+bbdc:
+  username: "123A12032002"
+  password: "111111"
+
+booking:
+  want_sessions: [6,7,8]
+  want_months: ["Oct/2022"]
+  want_dates: ["2022-10-18","2022-10-19","2022-10-21"]
+
+telegram:
+  token: "5123456789:asdfghjkl"
+  chat_id: "512345678"

@@ -1,0 +1,7 @@
+version: "3.9"
+services:
+  bbdcapp:
+    build: .
+    image: bbdc-bot:latest
+    environment:
+      - CONFIG_PATH=config/example.yaml
