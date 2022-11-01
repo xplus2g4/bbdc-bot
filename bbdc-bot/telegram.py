@@ -7,7 +7,11 @@ from .config import load_config
 
 
 async def send_message(session: aiohttp.ClientSession, text: str):
-    token, chat_id = get_token_chat_id()
+    try:
+        token, chat_id = get_token_chat_id()
+    except Exception as e:
+        print(e)
+        return
     text = quote_plus(text)
     url = (
         f"https://api.telegram.org/bot{token}/sendMessage?chat_id={chat_id}&text={text}"
@@ -17,9 +21,10 @@ async def send_message(session: aiohttp.ClientSession, text: str):
 
 
 def get_token_chat_id():
-    config = load_config("config.yaml")
+    config = load_config()
     enabled = config["telegram"]["enabled"]
-    print(type(enabled))
+    if not enabled:
+        raise ValueError("Telegram bot not enabled")
     bot_token = config["telegram"]["token"]
     chat_id = config["telegram"]["chat_id"]
 

@@ -9,9 +9,10 @@ bbdc:
 
 booking:
   want_sessions: [6,7,8]
-  want_months: ["Oct/2022"]
+  want_months: ["202211"]
   want_dates: ["2022-10-18","2022-10-19","2022-10-21"]
 
 telegram:
+  enabled: true
   token: "5123456789:asdfghjkl"
   chat_id: "512345678"

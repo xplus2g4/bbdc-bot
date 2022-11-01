@@ -4,6 +4,8 @@ BBDC Practical Slot Booking Bot
 
 >Note: TPDS booking not included
 
+>Note2: Adapted to the new BBDC UI, slot finding implemented, auto-booking W.I.P.
+
 ## Functionality
 - Periodically check and book practical lessons
 - Send Telegram message when booking is confirmed
@@ -32,7 +34,8 @@ All configs are compulsory
 | `bbdc.username` | BBDC Username |
 | `bbdc.password` | BBDC Password |
 | `booking.want_sessions` | Preferred sessions |
-| `booking.want_months` | Preferred months, in Mmm/YYYY (e.g. Oct/2022) |
+| `booking.want_months` | Preferred months, in YYYYMM (e.g. 202211) |
 | `booking.want_dates` | Specific dates, in YYYY-MM-DD (e.g. 2022-10-31) |
+| `telegram.enabled` | Enables Telegram bot (true/fales) |
 | `telegram.token` | Telegram bot token |
 | `telegram.chat_id` | Telegram chat id |

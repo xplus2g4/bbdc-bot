@@ -5,11 +5,12 @@ import aiohttp
 import attrs
 from bs4 import BeautifulSoup, Tag
 from parse import Result, compile, search
+from urllib.parse import quote_plus
 
 from .config import load_config
 from .telegram import send_message
 
-BASE_URL = "http://www.bbdc.sg/bbdc"
+BASE_URL = "https://booking.bbdc.sg/bbdc-back-service/api"
 
 
 @attrs.frozen()
@@ -19,30 +20,29 @@ class Slot:
     value: int
 
 
-async def login(session: aiohttp.ClientSession, username: str, password: str):
-    url = f"{BASE_URL}/bbdc_web/header2.asp"
+async def get_login_token(
+    username: str,
+    password: str,
+):
+    url = f"{BASE_URL}/auth/login"
     data = {
-        "txtNRIC": username,
-        "txtpassword": password,
-        "btnLogin": "ACCESS TO BOOKING SYSTEM",
+        "userId": username,
+        "userPass": password,
     }
-    async with session.get(url, data=data) as r:
-        pass
+    async with aiohttp.ClientSession(
+        connector=aiohttp.TCPConnector(verify_ssl=False)
+    ) as session:
+        async with session.post(url, json=data) as r:
+            json_content = await r.json()
+            return json_content["data"]["tokenContent"]
 
 
 async def get_acc_id(session: aiohttp.ClientSession):
-    url = f"{BASE_URL}/b-3c-pLessonBooking1.asp?limit=pl"
+    url = f"{BASE_URL}/account/listAccountCourseType"
 
-    async with session.get(url) as r:
-        html_doc = await r.text()
-        soup = BeautifulSoup(html_doc, "html.parser")
-        acc_id_field = soup.find("input", {"name": "accId"})
-        if not isinstance(acc_id_field, Tag):
-            raise ValueError("accId not found")
-        value = acc_id_field.get("value")
-        if not isinstance(value, str):
-            raise ValueError("accId value not found")
-        return value
+    async with session.post(url) as r:
+        json_content = await r.json()
+        return json_content["data"]["activeCourseList"][0]["accountId"]
 
 
 async def get_slots(
@@ -51,37 +51,32 @@ async def get_slots(
     want_months: list[str],
     want_sessions: list[int],
 ):
-    url = f"{BASE_URL}/b-3c-pLessonBooking1.asp"
+    url = f"{BASE_URL}/booking/c3practical/listC3PracticalSlotReleased"
 
-    data = aiohttp.FormData()
-    data.add_field("accId", accId)
-    data.add_field("defPLVenue", 1)
-    data.add_field("optVenue", 1)
-    for session_no in want_sessions:
-        data.add_field("Session", session_no)
-    for month in want_months:
-        data.add_field("Month", month)
-    for i in range(7):
-        data.add_field("Day", i + 1)
-
-    async with session.post(url, data=data) as r:
-        html_doc = await r.text()
-        soup = BeautifulSoup(html_doc, "html.parser")
-
-        p = compile('doTooltipV{}"{day:d}/{month:d}/{year:d}{}","{session:d}"{}')
+    payload = {
+        "courseType": "3A",
+        "insInstructorId": "",
+        "releasedSlotMonth": want_months[0],
+        "stageSubDesc": "Practical Lesson",
+        "subVehicleType": None,
+        "subStageSubNo": None,
+        "accountId": accId,
+    }
+    async with session.post(url, json=payload) as r:
+        json_content = await r.json()
+        if json_content["code"] != 0:
+            return []
+        raw_slots = json_content["data"]["releasedSlotListGroupByDay"]
+        if raw_slots == None:
+            return []
         slots: list[Slot] = []
-        for slot_raw in soup.find_all(type="checkbox"):
-            slot_value = int(slot_raw.get("value"))
-            slot_info = p.parse(slot_raw.parent.get("onmouseover"))
-            if not isinstance(slot_info, Result):
-                continue
-            slots.append(
-                Slot(
-                    date(slot_info["year"], slot_info["month"], slot_info["day"]),
-                    slot_info["session"],
-                    slot_value,
-                )
-            )
+        for date_str, date_slots in raw_slots.items():
+            slot_day = date.fromisoformat(date_str.split()[0])
+            for raw_slot in date_slots:
+                slot_session = int(raw_slot["slotRefName"].split()[1])
+                if slot_session in want_sessions:
+                    slot_id = raw_slot["slotId"]
+                    slots.append(Slot(slot_day, slot_session, slot_id))
         return slots
 
 
@@ -104,19 +99,19 @@ async def book_slot(session: aiohttp.ClientSession, acc_id: str, slot_value: int
 
 
 async def main(config):
-    headers = {
-        "content-type": "application/x-www-form-urlencoded",
-    }
     username = config["bbdc"]["username"]
     password = config["bbdc"]["password"]
     want_sessions = config["booking"]["want_sessions"]
     want_months = config["booking"]["want_months"]
     want_dates = [date.fromisoformat(d) for d in config["booking"]["want_dates"]]
 
+    bearer_token = await get_login_token(username, password)
+    headers = {"Authorization": bearer_token}
     success = False
     msg = ""
-    async with aiohttp.ClientSession(headers=headers) as session:
-        await login(session, username, password)
+    async with aiohttp.ClientSession(
+        connector=aiohttp.TCPConnector(verify_ssl=False), headers=headers
+    ) as session:
         acc_id = await get_acc_id(session)
         slots = await get_slots(
             session,
@@ -124,22 +119,29 @@ async def main(config):
             want_months,
             want_sessions,
         )
-
         for slot in slots:
-            if slot.day not in want_dates:
-                continue
-            success = await book_slot(session, acc_id, slot.value)
-            msg = (
-                f"[Booking Confirmed]:\nDate: {slot.day.isoformat()}\nSession: {slot.session}"
-                if success
-                else ""
-            )
+            if slot.day in want_dates:
+                await send_message(
+                    session,
+                    f"[Slot found]:\nDate: {slot.day.isoformat()}\nSession: {slot.session}",
+                )
+
+        # for slot in slots:
+        #     if slot.day not in want_dates:
+        #         continue
+        #     success = await book_slot(session, acc_id, slot.value)
+        #     msg = (
+        #         f"[Booking Confirmed]:\nDate: {slot.day.isoformat()}\nSession: {slot.session}"
+        #         if success
+        #         else ""
+        #     )
     if success:
-        print(f"{datetime.now()}: Slot Found!")
-        print(f"  {msg}")
-        await send_message(session, msg)
-        loop = asyncio.get_event_loop()
-        loop.stop()
+        pass
+        # print(f"{datetime.now()}: Slot Found!")
+        # print(f"  {msg}")
+        # await send_message(session, msg)
+        # loop = asyncio.get_event_loop()
+        # loop.stop()
     else:
         print(f"{datetime.now()}: No Slot Found")
 

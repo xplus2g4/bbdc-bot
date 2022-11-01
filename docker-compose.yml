@@ -4,4 +4,4 @@ services:
     build: .
     image: bbdc-bot:latest
     environment:
-      - CONFIG_PATH=config/example.yaml
+      - CONFIG_PATH=$CONFIG_PATH
