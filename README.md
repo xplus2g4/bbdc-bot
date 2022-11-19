@@ -18,11 +18,20 @@ BBDC Practical Slot Booking Bot
 
 ### Running the script
 
+## Setup
 1. Setup a Telegram bot via [@BotFather](https://t.me/botfather)
 2. Get your chat id via [@RawDataBot](https://t.me/RawDataBot), it should look something like this: `512345678`
 3. Create your own config under the `config` folder using the template: [config/example.yaml](config/example.yaml)
-4. Update `CONFIG_PATH` env in [docker-compose.yml](docker-compose.yml)
-5. In your terminal run: `docker compose up -d`
+
+## Docker
+1. Update `CONFIG_PATH` env in [docker-compose.yml](docker-compose.yml)
+2. In your terminal run: `docker compose up -d`
+
+## Local
+1. `export CONFIG_PATH=config/my_config.yaml`
+2. `poetry shell`
+3. `poetry install`
+4. `poetry run bbdc-bot`
 
 ## Booking Configs
 
@@ -31,11 +40,10 @@ All configs are compulsory
 | Config | Description |
 | ------ | ----------- |
 | `interval` | Query interval, in minutes |
-| `bbdc.username` | BBDC Username |
-| `bbdc.password` | BBDC Password |
+| `accounts.username` | BBDC Username |
+| `accounts.password` | BBDC Password |
 | `booking.want_sessions` | Preferred sessions |
 | `booking.want_months` | Preferred months, in YYYYMM (e.g. 202211) |
-| `booking.want_dates` | Specific dates, in YYYY-MM-DD (e.g. 2022-10-31) |
 | `telegram.enabled` | Enables Telegram bot (true/fales) |
 | `telegram.token` | Telegram bot token |
 | `telegram.chat_id` | Telegram chat id |
