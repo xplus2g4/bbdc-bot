@@ -13,6 +13,7 @@ from .telegram import send_message
 BASE_URL = "https://booking.bbdc.sg/bbdc-back-service/api"
 ACCOUNT_ITERATOR = 0
 
+
 @attrs.frozen()
 class Slot:
     day: date
@@ -48,21 +49,19 @@ async def get_session_id(session: aiohttp.ClientSession):
 async def get_slots(
     session: aiohttp.ClientSession,
     auth_token: str,
-    want_months: list[str],
+    want_month: str,
 ):
     url = f"{BASE_URL}/booking/c3practical/listC3PracticalSlotReleased"
 
     payload = {
         "courseType": "3A",
         "insInstructorId": "",
-        "releasedSlotMonth": want_months[0],
+        "releasedSlotMonth": want_month,
         "stageSubDesc": "Practical Lesson",
         "subVehicleType": None,
         "subStageSubNo": None,
     }
-    headers = {
-        "JSESSIONID": auth_token
-    }
+    headers = {"JSESSIONID": auth_token}
     async with session.post(url, json=payload, headers=headers) as r:
         json_content = await r.json()
         if json_content["code"] != 0:
@@ -110,7 +109,7 @@ async def main(config):
     ACCOUNT_ITERATOR = (ACCOUNT_ITERATOR + 1) % len(accounts)
     print(f"Using: {username}")
 
-    want_months = config["booking"]["want_months"]
+    want_months: list[str] = config["booking"]["want_months"]
 
     bearer_token = await get_login_token(username, password)
     headers = {"Authorization": bearer_token}
@@ -119,11 +118,13 @@ async def main(config):
         connector=aiohttp.TCPConnector(verify_ssl=False), headers=headers
     ) as session:
         session_id = await get_session_id(session)
-        slots = await get_slots(
-            session,
-            session_id,
-            want_months,
-        )
+        slots = []
+        for month in want_months:
+            slots += await get_slots(
+                session,
+                session_id,
+                month,
+            )
         if len(slots) == 0:
             print(f"{datetime.now()}: No Slot Found")
         else:
