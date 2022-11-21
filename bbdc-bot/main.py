@@ -148,18 +148,19 @@ async def book_slots(
             del found_slots[slot_id]
             del booking_slots[slot_id]
 
-            logger.info(f"[Booking success] {booked_slot} for {user}")
+            logger.info(f"Booking success: {booked_slot} for {user}")
             await private_message(
                 session,
                 user.chat_id,
-                f"[Booking success] {booked_slot}",
+                f"Booking success: {booked_slot}",
             )
 
         for failed_booking in booking_slots.values():
+            logger.info(f"Booking failed: {failed_booking} for {user}")
             await private_message(
                 session,
                 user.chat_id,
-                f"[Booking failed] {failed_booking}\nYou may want to check your balance?",
+                f"Booking failed: {failed_booking}\nYou may want to check your balance?",
             )
 
 
@@ -195,9 +196,9 @@ async def try_booking(slots: dict[str, Slot]):
 async def main(config):
 
     user = next(USER_POOL)
-    logger.info(f">>>>>>>>>>>> Using: {user.username}")
+    logger.info(f">>>>>>> Using: {user.username} >>>>>>>")
 
-    query_months: list[str] = config["booking"]["query_months"]
+    query_months: list[str] = config["query_months"]
 
     bearer_token = await get_login_token(user.username, user.password)
     headers = {"Authorization": bearer_token}
@@ -215,21 +216,20 @@ async def main(config):
                 month,
             )
             for id, slot in month_slots.items():
-                logger.info("[Slot Found]")
+                logger.info(f"Slot Found: {slot}")
                 slots[id] = slot
 
     if len(slots) == 0:
-        logger.info("[No Slot Found]")
-        return
+        logger.info("No Slot Found")
+    else:
+        remaining_slots = await try_booking(slots)
+        for slot in remaining_slots.values():
+            await broadcast_message(
+                session,
+                f"Slot found: {slot}",
+            )
 
-    remaining_slots = await try_booking(slots)
-    for slot in remaining_slots.values():
-        await broadcast_message(
-            session,
-            f"[Slot found]: {slot}",
-        )
-
-    logger.info(f">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+    logger.info(f">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n")
 
 
 def load_users(config):

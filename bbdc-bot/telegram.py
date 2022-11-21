@@ -37,9 +37,6 @@ async def private_message(session: aiohttp.ClientSession, chat_id: str, text: st
 @lru_cache(maxsize=1)
 def get_bot_token():
     config = load_config()
-    enabled = config["telegram"]["enabled"]
-    if not enabled:
-        raise ValueError("Telegram bot not enabled")
     bot_token = config["telegram"]["token"]
 
     if not bot_token:
