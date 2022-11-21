@@ -148,6 +148,8 @@ async def book_slots(
             del found_slots[slot_id]
             del booking_slots[slot_id]
 
+            user.preferred_slots.remove(booked_slot)
+
             logger.info(f"Booking success: {booked_slot} for {user}")
             await private_message(
                 session,
