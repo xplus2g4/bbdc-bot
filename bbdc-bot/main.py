@@ -221,15 +221,15 @@ async def main(config):
                 logger.info(f"Slot Found: {slot}")
                 slots[id] = slot
 
-    if len(slots) == 0:
-        logger.info("No Slot Found")
-    else:
-        remaining_slots = await try_booking(slots)
-        for slot in remaining_slots.values():
-            await broadcast_message(
-                session,
-                f"Slot found: {slot}",
-            )
+        if len(slots) == 0:
+            logger.info("No Slot Found")
+        else:
+            remaining_slots = await try_booking(slots)
+            for slot in remaining_slots.values():
+                await broadcast_message(
+                    session,
+                    f"Slot found: {slot}",
+                )
 
     logger.info(f">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n")
 
