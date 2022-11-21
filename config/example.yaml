@@ -1,17 +1,19 @@
 # config
 
 # interval in mins
-interval: 35
+interval: 50
+query_months: ["202211", "202212"]
 
 accounts:
   - username: "123A01012000"
     password: "114514"
-
-booking:
-  want_sessions: [1,2,3,4,5,6,7,8]
-  want_months: ["202211", "202212"]
+    chat_id: "512345678"
+    preferred_slots: # optional
+    - date: "2022-11-11"
+      sessions: [1,2,3]
+    - date: "2022-12-12"
+      sessions: [4,5,6]
 
 telegram:
-  enabled: true
   token: "5123456789:asdfghjkl"
-  chat_id: "512345678"
+  broadcast_chat_id: "512345678" # can be the same as account chat_id

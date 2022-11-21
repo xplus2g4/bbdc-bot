@@ -1,9 +1,10 @@
-import logging
 import os
 import sys
 from functools import lru_cache
 
 import yaml
+
+from .logger import logger
 
 CONFIG_PATH = os.getenv("CONFIG_PATH", "config/example.yaml")
 
@@ -15,10 +16,10 @@ def load_config():
         try:
             data = yaml.safe_load(stream)
         except yaml.YAMLError as exc:
-            logging.error(exc)
+            logger.error(exc)
             sys.exit(1)
     return data
 
 
 if __name__ == "__main__":
-    print(load_config())
+    logger.info(load_config())
