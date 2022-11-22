@@ -8,6 +8,7 @@ accounts:
   - username: "123A01012000"
     password: "114514"
     chat_id: "512345678"
+    course_type: "3C"
     preferred_slots: # optional
     - date: "2022-11-11"
       sessions: [1,2,3]

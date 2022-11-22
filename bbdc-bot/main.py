@@ -79,6 +79,8 @@ async def get_session_id(session: aiohttp.ClientSession):
 
     async with session.post(url) as r:
         json_content = await r.json()
+        # TODO: need to return authToken against specific courseType.
+        # currently we are sending first course authToken which may break the functionality
         return json_content["data"]["activeCourseList"][0]["authToken"]
 
 
@@ -86,11 +88,12 @@ async def get_slots(
     session: aiohttp.ClientSession,
     auth_token: str,
     want_month: str,
+    course_type: str,
 ) -> dict[str, Slot]:
     url = f"{BASE_URL}/booking/c3practical/listC3PracticalSlotReleased"
 
     payload = {
-        "courseType": "3A",
+        "courseType": course_type,
         "insInstructorId": "",
         "releasedSlotMonth": want_month,
         "stageSubDesc": "Practical Lesson",
@@ -121,6 +124,7 @@ async def book_slots(
     user: User,
     found_slots: dict[str, Slot],
     booking_slots: dict[str, Slot],
+    course_type: str,
 ):
     """
     Book the booking slots for the user. Successful booking will remove the slot from `found_slots`
@@ -128,7 +132,7 @@ async def book_slots(
     url = f"{BASE_URL}/booking/c3practical/callBookC3PracticalSlot"
 
     payload = {
-        "courseType": "3A",
+        "courseType": course_type,
         "insInstructorId": "",
         "slotIdList": [slot for slot in booking_slots.keys()],
         "subVehicleType": None,
@@ -166,7 +170,7 @@ async def book_slots(
             )
 
 
-async def try_booking(slots: dict[str, Slot]):
+async def try_booking(course_type: str, slots: dict[str, Slot]):
     global USERS
 
     remaining_slots = slots.copy()
@@ -190,7 +194,7 @@ async def try_booking(slots: dict[str, Slot]):
         ) as session:
             session_id = await get_session_id(session)
             # book_slots removes booked slot from remaining slot
-            await book_slots(session, session_id, user, remaining_slots, booking_slots)
+            await book_slots(session, session_id, user, remaining_slots, booking_slots, course_type)
 
     return remaining_slots
 
@@ -216,6 +220,7 @@ async def main(config):
                 session,
                 session_id,
                 month,
+                config["course_type"],
             )
             for id, slot in month_slots.items():
                 logger.info(f"Slot Found: {slot}")
@@ -224,7 +229,7 @@ async def main(config):
         if len(slots) == 0:
             logger.info("No Slot Found")
         else:
-            remaining_slots = await try_booking(slots)
+            remaining_slots = await try_booking(config["course_type"], slots)
             for slot in remaining_slots.values():
                 await broadcast_message(
                     session,
