@@ -41,12 +41,12 @@ BBDC Practical Slot Booking Bot
 | ------ | ----------- |
 | `interval` | Query interval, in minutes, preferably 50 minutes to prevent getting blacklisted |
 | `query_months` | Preferred months, in YYYYMM (e.g. 202211) |
+| `course_type` | Course Type for which you want to book slots |
 ||
 | `accounts` |
 | `.username` | BBDC Username (Supports multiple account) |
 | `.password` | BBDC Password |
 | `.chat_id` | Telegram chat id, telegram bot will send a message to this chat when a slot is booked |
-| `.course_type` | Course Type for which you want to book slots |
 | `.preferred_slots` |
 | `.date` | Preferred date in YYYY-MM-DD |
 | `.sessions` | Preferred sessions |
