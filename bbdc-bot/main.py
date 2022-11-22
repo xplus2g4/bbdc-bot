@@ -3,102 +3,30 @@ from datetime import date
 from itertools import cycle
 from typing import Iterator
 
-import aiohttp
-import attrs
-
 from .config import load_config
 from .logger import logger
+from .models import BASE_URL, BBDCSession, Slot, User
 from .telegram import broadcast_message, private_message
 
-
-@attrs.frozen()
-class Slot:
-    day: date
-    session: int
-
-    def __repr__(self) -> str:
-        return f"date: {self.day.isoformat()}, session: {self.session}"
-
-    def __eq__(self, __o: object) -> bool:
-        if not isinstance(__o, Slot):
-            return False
-        return self.day == __o.day and self.session == __o.session
-
-
-class User:
-    username: str
-    password: str
-    chat_id: str
-    preferred_slots: list[Slot]
-
-    def __init__(self, raw_user: dict):
-        self.username = raw_user["username"]
-        self.password = raw_user["password"]
-        self.chat_id = raw_user["chat_id"]
-
-        if "preferred_slots" not in raw_user:
-            self.preferred_slots = []
-        else:
-            raw_preferred_slots = raw_user["preferred_slots"]
-            preferred_slots: list[Slot] = []
-            for raw_slot in raw_preferred_slots:
-                day = date.fromisoformat(raw_slot["date"])
-                sessions = raw_slot["sessions"]
-                for s in sessions:
-                    preferred_slots.append(Slot(day, s))
-            self.preferred_slots = preferred_slots
-
-    def __repr__(self) -> str:
-        return self.username
-
-
-BASE_URL = "https://booking.bbdc.sg/bbdc-back-service/api"
 USERS: list[User] = []
 USER_POOL: Iterator
 
 
-async def get_login_token(
-    username: str,
-    password: str,
-):
-    url = f"{BASE_URL}/auth/login"
-    data = {
-        "userId": username,
-        "userPass": password,
-    }
-    async with aiohttp.ClientSession(
-        connector=aiohttp.TCPConnector(verify_ssl=False)
-    ) as session:
-        async with session.post(url, json=data) as r:
-            json_content = await r.json()
-            return json_content["data"]["tokenContent"]
-
-
-async def get_session_id(session: aiohttp.ClientSession):
-    url = f"{BASE_URL}/account/listAccountCourseType"
-
-    async with session.post(url) as r:
-        json_content = await r.json()
-        return json_content["data"]["activeCourseList"][0]["authToken"]
-
-
 async def get_slots(
-    session: aiohttp.ClientSession,
-    auth_token: str,
+    session: BBDCSession,
     want_month: str,
 ) -> dict[str, Slot]:
     url = f"{BASE_URL}/booking/c3practical/listC3PracticalSlotReleased"
 
     payload = {
-        "courseType": "3A",
+        "courseType": session.course_type,
         "insInstructorId": "",
         "releasedSlotMonth": want_month,
         "stageSubDesc": "Practical Lesson",
         "subVehicleType": None,
         "subStageSubNo": None,
     }
-    headers = {"JSESSIONID": auth_token}
-    async with session.post(url, json=payload, headers=headers) as r:
+    async with session.post(url, json=payload) as r:
         json_content = await r.json()
         if json_content["code"] != 0:
             return {}
@@ -116,9 +44,7 @@ async def get_slots(
 
 
 async def book_slots(
-    session: aiohttp.ClientSession,
-    auth_token: str,
-    user: User,
+    session: BBDCSession,
     found_slots: dict[str, Slot],
     booking_slots: dict[str, Slot],
 ):
@@ -128,16 +54,14 @@ async def book_slots(
     url = f"{BASE_URL}/booking/c3practical/callBookC3PracticalSlot"
 
     payload = {
-        "courseType": "3A",
+        "courseType": session.course_type,
         "insInstructorId": "",
         "slotIdList": [slot for slot in booking_slots.keys()],
         "subVehicleType": None,
     }
 
-    headers = {"JSESSIONID": auth_token}
-
     booked_slots: dict[str, Slot] = {}
-    async with session.post(url, json=payload, headers=headers) as r:
+    async with session.post(url, json=payload) as r:
         json_content = await r.json()
         responses = json_content["data"]["bookedPracticalSlotList"]
 
@@ -148,25 +72,25 @@ async def book_slots(
             del found_slots[slot_id]
             del booking_slots[slot_id]
 
-            user.preferred_slots.remove(booked_slot)
+            session.user.preferred_slots.remove(booked_slot)
 
-            logger.info(f"Booking success: {booked_slot} for {user}")
+            logger.info(f"Booking success: {booked_slot} for {session.user}")
             await private_message(
                 session,
-                user.chat_id,
+                session.user.chat_id,
                 f"Booking success: {booked_slot}",
             )
 
         for failed_booking in booking_slots.values():
-            logger.info(f"Booking failed: {failed_booking} for {user}")
+            logger.info(f"Booking failed: {failed_booking} for {session.user}")
             await private_message(
                 session,
-                user.chat_id,
+                session.user.chat_id,
                 f"Booking failed: {failed_booking}\nYou may want to check your balance?",
             )
 
 
-async def try_booking(slots: dict[str, Slot]):
+async def try_booking(course_type: str, slots: dict[str, Slot]):
     global USERS
 
     remaining_slots = slots.copy()
@@ -183,14 +107,9 @@ async def try_booking(slots: dict[str, Slot]):
         if len(booking_slots) == 0:
             continue
 
-        bearer_token = await get_login_token(user.username, user.password)
-        headers = {"Authorization": bearer_token}
-        async with aiohttp.ClientSession(
-            connector=aiohttp.TCPConnector(verify_ssl=False), headers=headers
-        ) as session:
-            session_id = await get_session_id(session)
+        async with (await BBDCSession.create(user, course_type)) as session:
             # book_slots removes booked slot from remaining slot
-            await book_slots(session, session_id, user, remaining_slots, booking_slots)
+            await book_slots(session, remaining_slots, booking_slots)
 
     return remaining_slots
 
@@ -201,20 +120,14 @@ async def main(config):
     logger.info(f">>>>>>> Using: {user.username} >>>>>>>")
 
     query_months: list[str] = config["query_months"]
-
-    bearer_token = await get_login_token(user.username, user.password)
-    headers = {"Authorization": bearer_token}
+    course_type: str = config["course_type"]
 
     slots: dict[str, Slot] = {}
-    async with aiohttp.ClientSession(
-        connector=aiohttp.TCPConnector(verify_ssl=False), headers=headers
-    ) as session:
-        session_id = await get_session_id(session)
+    async with (await BBDCSession.create(user, course_type)) as session:
         for month in query_months:
 
             month_slots = await get_slots(
                 session,
-                session_id,
                 month,
             )
             for id, slot in month_slots.items():
@@ -224,12 +137,11 @@ async def main(config):
         if len(slots) == 0:
             logger.info("No Slot Found")
         else:
-            remaining_slots = await try_booking(slots)
-            for slot in remaining_slots.values():
-                await broadcast_message(
-                    session,
-                    f"Slot found: {slot}",
-                )
+            remaining_slots = await try_booking(session.course_type, slots)
+            msg = "Slot found:\n" + "\n".join(
+                [str(slot) for slot in remaining_slots.values()]
+            )
+            await broadcast_message(session, msg)
 
     logger.info(f">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n")
 

@@ -40,6 +40,7 @@ BBDC Practical Slot Booking Bot
 | Config | Description |
 | ------ | ----------- |
 | `interval` | Query interval, in minutes, preferably 50 minutes to prevent getting blacklisted |
+| `course_type` | Course Type for which you want to book slots |
 | `query_months` | Preferred months, in YYYYMM (e.g. 202211) |
 ||
 | `accounts` |
