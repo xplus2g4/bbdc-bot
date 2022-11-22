@@ -46,6 +46,7 @@ BBDC Practical Slot Booking Bot
 | `.username` | BBDC Username (Supports multiple account) |
 | `.password` | BBDC Password |
 | `.chat_id` | Telegram chat id, telegram bot will send a message to this chat when a slot is booked |
+| `.course_type` | Course Type for which you want to book slots |
 | `.preferred_slots` |
 | `.date` | Preferred date in YYYY-MM-DD |
 | `.sessions` | Preferred sessions |
