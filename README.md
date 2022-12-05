@@ -33,7 +33,7 @@ BBDC Practical Slot Booking Bot
 1. `export CONFIG_PATH=config/my_config.yaml`
 2. `poetry shell`
 3. `poetry install`
-4. `poetry run bbdc-bot`
+4. `python -m bbdc-bot`
 
 ## Booking Configs
 

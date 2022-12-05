@@ -13,12 +13,34 @@ class Slot:
     session: int
 
     def __repr__(self) -> str:
-        return f"date: {self.day.isoformat()}, session: {self.session}"
+        return f"date: {self.day.isoformat()}, session: {self.session} ({self.timing})"
 
     def __eq__(self, __o: object) -> bool:
         if not isinstance(__o, Slot):
             return False
         return self.day == __o.day and self.session == __o.session
+
+    @property
+    def timing(self) -> str:
+        match self.session:
+            case 1:
+                return "07:30-09:10"
+            case 2:
+                return "09:20-11:00"
+            case 3:
+                return "11:30-13:10"
+            case 4:
+                return "13:20-15:00"
+            case 5:
+                return "15:20-17:00"
+            case 6:
+                return "17:10-18:50"
+            case 7:
+                return "19:20-21:00"
+            case 8:
+                return "21:10-22:50"
+            case _:
+                return ""
 
 
 class User:

@@ -138,10 +138,11 @@ async def main(config):
             logger.info("No Slot Found")
         else:
             remaining_slots = await try_booking(session.course_type, slots)
-            msg = "Slot found:\n" + "\n".join(
-                [str(slot) for slot in remaining_slots.values()]
-            )
-            await broadcast_message(session, msg)
+            if len(remaining_slots) != 0:
+                msg = "Slot found:\n" + "\n".join(
+                    [str(slot) for slot in remaining_slots.values()]
+                )
+                await broadcast_message(session, msg)
 
     logger.info(f">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n")
 
