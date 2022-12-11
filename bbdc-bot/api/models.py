@@ -56,7 +56,7 @@ class Slot:
         return cls(slot_type, day, session, startTime, endTime)
 
     def __repr__(self) -> str:
-        return f"date: {self.day.isoformat()}, session: {self.session} ({self.timing})"
+        return f"#{self.slot_type} date: {self.day.isoformat()}, session: {self.session} ({self.timing})"
 
     def __eq__(self, __o: object) -> bool:
         if not isinstance(__o, Slot):

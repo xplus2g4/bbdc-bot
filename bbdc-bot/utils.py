@@ -3,23 +3,23 @@ from .logger import logger
 from .telegram import broadcast_message, private_message
 
 
-def generate_booking_success_callback(session: BBDCSession, slot_type: SlotType):
+def generate_booking_success_callback(session: BBDCSession):
     async def callback(slot: Slot):
         await private_message(
             session,
             session.user.chat_id,
-            f"{slot_type} booking success: {slot}",
+            f"Booking success: {slot}",
         )
 
     return callback
 
 
-def generate_booking_failure_callback(session: BBDCSession, slot_type: SlotType):
+def generate_booking_failure_callback(session: BBDCSession):
     async def callback(slot: Slot):
         await private_message(
             session,
             session.user.chat_id,
-            f"{slot_type} booking failed: {slot}",
+            f"Booking failed: {slot}",
         )
 
     return callback
@@ -76,8 +76,8 @@ async def _try_booking(
             session,
             remaining_slots,
             booking_slots,
-            generate_booking_success_callback(session, api.slot_type),
-            generate_booking_failure_callback(session, api.slot_type),
+            generate_booking_success_callback(session),
+            generate_booking_failure_callback(session),
         )
 
     return remaining_slots
