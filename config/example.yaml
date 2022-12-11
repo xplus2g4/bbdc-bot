@@ -10,9 +10,13 @@ accounts:
     password: "114514"
     chat_id: "512345678"
     preferred_slots: # optional
-      - date: "2022-11-11"
+      # Currently Supported Slot Type:
+      # "Practical"
+      - slot_type: "Practical"
+        date: "2022-11-11"
         sessions: [1, 2, 3]
-      - date: "2022-12-12"
+      - slot_type: "Practical"
+        date: "2022-12-12"
         sessions: [4, 5, 6]
 
 telegram:
