@@ -44,15 +44,17 @@ BBDC Practical Slot Booking Bot
 | `query_months` | Preferred months, in YYYYMM (e.g. 202211) |
 ||
 | `accounts` |
-| `.username` | BBDC Username (Supports multiple account) |
-| `.password` | BBDC Password |
-| `.chat_id` | Telegram chat id, telegram bot will send a message to this chat when a slot is booked |
-| `.preferred_slots` |
-| `.date` | Preferred date in YYYY-MM-DD |
-| `.sessions` | Preferred sessions |
+| &nbsp;&nbsp;`.username` | BBDC Username (Supports multiple account) |
+| &nbsp;&nbsp;`.password` | BBDC Password |
+| &nbsp;&nbsp;`.chat_id` | Telegram chat id, telegram bot will send a message to this chat when a slot is booked |
+| &nbsp;&nbsp;`.preferred_slots` |
+| &nbsp;&nbsp;&nbsp;&nbsp;`.slot_type` | Target slot type |
+| &nbsp;&nbsp;&nbsp;&nbsp;`.date` | Preferred date in YYYY-MM-DD |
+| &nbsp;&nbsp;&nbsp;&nbsp;`.sessions` | Preferred sessions |
 ||
-| `telegram.token` | Telegram bot token |
-| `telegram.broadcast_chat_id` | Telegram chat to broadcast the found slots. Can be personal chat or a channel |
+| `telegram` |
+| &nbsp;&nbsp;`.token` | Telegram bot token |
+| &nbsp;&nbsp;`.broadcast_chat_id` | Telegram chat to broadcast the found slots. Can be personal chat or a channel |
 
 ## FAQ
 > How do I know if my config is loaded properly?
@@ -62,3 +64,11 @@ Test it with `python -m bbdc-bot.config`. You should see your configs printed in
 > How do I know if my telegram bot is working?
 
 Test it with `python -m bbdc-bot.telegram`. You should see the message "test" being sent to your chat.
+
+## Development
+
+To support other types of slot booking (E.g. BTP,BTE etc.), implement `BaseAPI` interface.
+
+Add the implemented API in [`main()`](bbdc-bot/main.py), use `find_and_book()` utility to call the API.
+
+Use [`practical.py`](bbdc-bot/api/practical.py) as a reference
